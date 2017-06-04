@@ -71,10 +71,10 @@ func (p *publisher) Publish(message Message) {
 	remoteTemplate := NewMessage(message.Tag())
 	localTemplate := io.TeeReader(message, remoteTemplate)
 	p.publishLocal(message.Tag(), localTemplate)
-	p.publishRemote(message.Tag(), remoteTemplate)
+	p.publishRemote(message.Tag(), remoteTemplate, message.Sender())
 }
 
-func (p *publisher) publishRemote(tag string, payload io.Reader) {
+func (p *publisher) publishRemote(tag string, payload io.Reader, sender string) {
 	tagLength := len(tag)
 	header := make([]byte, 0)
 	for i := tagLength / 255; i > 0; i-- {
@@ -84,6 +84,9 @@ func (p *publisher) publishRemote(tag string, payload io.Reader) {
 	header = append(header, []byte(tag)...)
 	var writers []io.Writer
 	for i := range p.remotes {
+		if p.remotes[i] == sender {
+			continue
+		}
 		currentConn, err := net.Dial("tcp", p.remotes[i])
 		defer currentConn.Close()
 		if err != nil {
@@ -166,5 +169,6 @@ func (p *publisher) handleMessage(conn net.Conn) {
 	payload := buf.Next(buf.Len())
 	message := NewMessage(tag)
 	message.Write(payload)
+	message.SetSender(conn.RemoteAddr().String())
 	p.Publish(message)
 }

@@ -9,6 +9,8 @@ type Message interface {
 	SetTag(tag string)
 	Tag() string
 	io.ReadWriteCloser
+	Sender() string
+	SetSender(sender string)
 }
 
 func NewMessage(tag string) Message {
@@ -23,6 +25,7 @@ type simpleMessage struct {
 	tag      string
 	buffer   *bytes.Buffer
 	isSealed bool
+	sender   string
 }
 
 func (s simpleMessage) Tag() string {
@@ -49,4 +52,11 @@ func (s *simpleMessage) Write(p []byte) (n int, err error) {
 func (s *simpleMessage) Close() error {
 	s.isSealed = true
 	return nil
+}
+
+func (s simpleMessage) Sender() string {
+	return s.sender
+}
+func (s *simpleMessage) SetSender(sender string) {
+	s.sender = sender
 }
