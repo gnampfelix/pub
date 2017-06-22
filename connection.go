@@ -230,17 +230,10 @@ func (c *connection) Write(p []byte) (int, error) {
 	if !c.isStreaming {
 		return 0, nil
 	}
-	n := 0
-	buffer := bytes.NewBuffer(p)
-	scanner := bufio.NewScanner(buffer)
-	for scanner.Scan() {
-		err := c.conn.PrintfLine("%d %s", STREAM_LINE, scanner.Text())
-		if err != nil {
-			return n, err
-		}
-		n += len(scanner.Bytes())
-	}
-	return n, nil
+
+	transformedMessage := bytes.Replace(p, []byte("\n"), []byte("\\n"), -1)
+	err := c.conn.PrintfLine("%d %s", STREAM_LINE, string(transformedMessage))
+	return len(p), err
 }
 
 func (c *connection) Read(p []byte) (int, error) {
@@ -266,7 +259,7 @@ func (c *connection) Read(p []byte) (int, error) {
 			}
 			return n, err
 		}
-		stringBytes := []byte(message + "\n")
+		stringBytes := bytes.Replace([]byte(message), []byte("\\n"), []byte("\n"), -1)
 		i := 0
 		for ; n < max && i < len(stringBytes); i++ {
 			p[n] = stringBytes[i]

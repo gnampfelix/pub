@@ -131,7 +131,7 @@ var _ = Describe("Connection", func() {
 		buf := make([]byte, 10)
 		n, err := clientConn.Write(input)
 		Expect(err).Should(Succeed())
-		Expect(n).Should(Equal(len(input) - 1)) //	\n are not counted!
+		Expect(n).Should(Equal(len(input)))
 
 		n, err = serverConn.Read(buf)
 		Expect(err).Should(Succeed())
