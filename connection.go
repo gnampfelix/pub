@@ -35,20 +35,59 @@ const (
 //	over a Connection. All items are treated as lines or collections of lines
 //	(according to POSIX, all lines must end with \n). For example, if a file is to
 //	be send that doesn't end "correctly" with \n, the \n is added on the receiving side.
-//	The resulting file will have a \n at the end.
+//	The resulting file will have a \n at the end. An error does not close the connection,
+//	although the connection might by out of sync afterwards.
 type Connection interface {
+	//	Send a message to a remote. The message is closed before sending.
+	//	The tag of the message should not contain "\n"-characters, as they
+	//	would (currently) break the connection.
+	//	Returns an error if the message could not be delivered or if the connections
+	//	is set into streaming mode.
 	SendMessage(message Message) error
+
+	//	Sends a single string to the remote. The string should not contain "\n"-
+	//	characters as they would (currently) break the connection.
+	//	Returns an error if the string could not be delivered or if the connection
+	//	is set into streaming mode.
 	SendString(message string) error
+
+	//	Sends and closes the given file to the remote. Returns an error if the file
+	//	could not be read or the connection is set into streaming mode.
 	SendAndCloseFile(file *os.File) error
+
+	//	Waits for a message with the given tag. If the received content is not correct
+	//	(not a message or a message but with the wrong tag), an error is returned.
 	ReceiveMessageWithTag(tag string) (Message, error)
+
+	//	Waits for any message. If the received content is not a message, an error
+	//	is returned.
 	ReceiveMessage() (Message, error)
+
+	//	Waits for a string. If the received content is not a string, an error is
+	//	returned.
 	ReceiveString() (string, error)
+
+	//	Waits for a file and saves it with the given filename. The reading position
+	//	is set to 0. Returns an error if the received content is not a file or
+	//	if the file could not be safed.
 	ReceiveFile(filename string) (*os.File, error)
+
+	//	Sets the connection into streaming mode. Waits for the remote to confirm.
+	//	Returns an error, if data is received that is not a valid confirmation.
 	StartStream() error
+
+	//	Unsets the streaming mode. Does not wait for a remote confirmation.
 	StopStream() error
+
+	//	Read and Write can only be used when in streaming mode. Every call to Write
+	//	sends the given data at once. All occurences of "\n" are replaced by "\\n".
+	//	This is reverted on the reading side. Callers must make sure that no "\\n"
+	//	occurs in the input, otherwise it would result in a "\n" in the received
+	//	output. A call to Close closes the connection.
 	io.ReadWriteCloser
 }
 
+//	Converts the given connection into a Connection.
 func NewConnection(conn net.Conn) Connection {
 	return &connection{conn: textproto.NewConn(conn), readBuffer: bytes.NewBuffer(make([]byte, 0))}
 }

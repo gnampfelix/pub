@@ -5,14 +5,21 @@ import (
 	"io"
 )
 
+//	A Message represents a streamed byte content connected to a tag.
+//	Callers can write to, read from and close it.
 type Message interface {
+	//	Sets the tag of the Message.
 	SetTag(tag string)
+
+	//	Returns the tag of the Message.
 	Tag() string
+
+	//	Read from, Write to and Close the Message. After closing the message,
+	//	only writing is prohibited, not reading.
 	io.ReadWriteCloser
-	Sender() string
-	SetSender(sender string)
 }
 
+//	Returns a Message with the given tag.
 func NewMessage(tag string) Message {
 	buffer := bytes.NewBuffer(make([]byte, 0))
 	return &simpleMessage{tag: tag,
@@ -52,11 +59,4 @@ func (s *simpleMessage) Write(p []byte) (n int, err error) {
 func (s *simpleMessage) Close() error {
 	s.isSealed = true
 	return nil
-}
-
-func (s simpleMessage) Sender() string {
-	return s.sender
-}
-func (s *simpleMessage) SetSender(sender string) {
-	s.sender = sender
 }
