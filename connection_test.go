@@ -158,6 +158,32 @@ var _ = Describe("Connection", func() {
 		Expect(err).Should(HaveOccurred())
 	})
 
+	It("should send multiple messages", func() {
+		message := NewMessage("tag")
+		message.Write([]byte("payload"))
+		err := clientConn.SendMessage(message)
+		Expect(err).Should(Succeed())
+
+		result, err := serverConn.ReceiveMessageWithTag("tag")
+		Expect(err).Should(Succeed())
+		Expect(result.Tag()).Should(Equal("tag"))
+		resultInBytes, err := ioutil.ReadAll(result)
+		Expect(err).Should(Succeed())
+		Expect(resultInBytes).Should(Equal([]byte("payload\n")))
+
+		message2 := NewMessage("tig")
+		message2.Write([]byte("payload2"))
+		err = clientConn.SendMessage(message2)
+		Expect(err).Should(Succeed())
+
+		result2, err := serverConn.ReceiveMessageWithTag("tig")
+		Expect(err).Should(Succeed())
+		Expect(result2.Tag()).Should(Equal("tig"))
+		resultInBytes2, err := ioutil.ReadAll(result2)
+		Expect(err).Should(Succeed())
+		Expect(resultInBytes2).Should(Equal([]byte("payload2\n")))
+	})
+
 })
 
 func streamHelper(conn Connection, result chan error) {

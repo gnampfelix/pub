@@ -293,6 +293,7 @@ func (c *connection) Read(p []byte) (int, error) {
 		if err != nil {
 			if convErr, ok := err.(*textproto.Error); ok {
 				if convErr.Code == STREAM_END {
+					err = io.EOF
 					c.isStreaming = false
 				}
 			}
